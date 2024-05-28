@@ -1,25 +1,41 @@
+# This code is a Nim implementation of the Algorithms described in https://altcha.org/docs/server-integration/
+
+# Note: the frontend widget works only with lowercase letters, but nimcrypto hashing gives UPPERCASE
+# strings, so that's why toLower() is used
+
 import jester
 import std/[sysrand, strutils, json, base64]
 import nimcrypto/[sha2, hmac]
 
-const complexity: uint = 1_000
+# The Altcha complexity, described here: https://altcha.org/docs/complexity/
+# Make sure to change the maxnumber in the frontend widget to a higher number
+const complexity: uint = 10_000
+
+# The HMAC key used to sign the challenge, you should probably use a more secure key than this example
 const hmacKey = "password123"
 
 routes:
+
   get "/new":
     
+    # Wanted to reuse the name, so I made it variable
     var randomBytes: seq[byte]
 
     # Generating salt
+    # 5 bytes chosen as when it gets converted to hexadecimal, its length doubles into the recommended 10 chars
     randomBytes = urandom(5)
     var salt: string
+    # Converts the byte sequence to a hexadecimal string
     for i in randomBytes:
       salt.add i.toHex
     salt = salt.toLower()
     
     # Generating secret number
+    # This section is just a Random Number Generator, but created with secure random, unlike the std/random library
+    # 8 Bytes chosen because that is 64 bits
     randomBytes = urandom(8)
     var randomNumber: uint
+    # Assembles an array of bytes (randomBytes) into a single number (randomNumber)
     for i in 0..(randomBytes.len - 1):
       randomNumber += randomBytes[i]
       randomNumber = randomNumber shl 8
@@ -39,8 +55,8 @@ routes:
     })
 
   post "/submit":
+    # Parses the body of the request, finds the "payload" field, decodes it from Base64, and the parses the resulting JSON
     let data = decode(request.body.parseJson["payload"].getStr).parseJson()
-    echo data
 
     let alg_ok = data["algorithm"].getStr == "SHA-256"
 

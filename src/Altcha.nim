@@ -2,7 +2,7 @@ import jester
 import std/[sysrand, strutils, json]
 import nimcrypto/[sha2, hmac]
 
-const complexity: uint = 1_000_000
+const complexity: uint = 1_000
 const hmacKey = "password123"
 
 routes:
@@ -15,6 +15,7 @@ routes:
     var salt: string
     for i in randomBytes:
       salt.add i.toHex
+    salt = salt.toLower()
     
     # Generating secret number
     randomBytes = urandom(8)
@@ -25,10 +26,10 @@ routes:
     let secretNumber = randomNumber mod complexity
 
     # Generating challenge hash
-    let challenge = $sha256.digest(salt & $secretNumber)
+    let challenge = toLower($sha256.digest(salt & $secretNumber))
 
     # Generating server signature
-    let signature = $sha256.hmac(hmacKey, challenge)
+    let signature = toLower($sha256.hmac(hmacKey, challenge))
 
     resp(%* {
       "algorithm": "SHA-256",

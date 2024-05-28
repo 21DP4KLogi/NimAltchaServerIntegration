@@ -1,5 +1,5 @@
 import jester
-import std/[sysrand, strutils, json]
+import std/[sysrand, strutils, json, base64]
 import nimcrypto/[sha2, hmac]
 
 const complexity: uint = 1_000
@@ -39,4 +39,17 @@ routes:
     })
 
   post "/submit":
-    resp Http200
+    let data = decode(request.body.parseJson["payload"].getStr).parseJson()
+    echo data
+
+    let alg_ok = data["algorithm"].getStr == "SHA-256"
+
+    let challenge_ok = data["challenge"].getStr == toLower($sha256.digest(data["salt"].getStr & $data["number"].getInt))
+
+    let signature_ok = data["signature"].getStr == toLower($sha256.hmac(hmacKey, data["challenge"].getStr))
+    
+    if alg_ok and challenge_ok and signature_ok:
+      # Don't know why, but the widget requires a JSON response to not throw an error
+      resp Http200, $(%* {"foo": "bar"})
+    else:
+      resp Http400
